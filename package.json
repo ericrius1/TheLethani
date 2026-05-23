@@ -4,11 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "assets:publish": "node scripts/publish-r2-media.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "prepare": "node scripts/install-hooks.mjs"
   },
   "devDependencies": {
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "wrangler": "^4.94.0"
   }
 }

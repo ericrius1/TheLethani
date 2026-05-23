@@ -1,6 +1,7 @@
 import "./styles.css";
 
-const moonVideoUrl = import.meta.env.VITE_MOON_VIDEO_URL?.trim() || "/media/moon.mp4";
+const mediaBaseUrl = import.meta.env.VITE_MEDIA_BASE_URL?.trim().replace(/\/+$/, "");
+const mediaUrl = (fileName) => (mediaBaseUrl ? `${mediaBaseUrl}/${fileName}` : `/media/${fileName}`);
 
 const blocks = [
   {
@@ -12,7 +13,7 @@ const blocks = [
   },
   {
     type: "video",
-    src: moonVideoUrl,
+    src: mediaUrl("moon.mp4"),
     label: "Moon loop",
     fit: "cover",
     tone: "night"
