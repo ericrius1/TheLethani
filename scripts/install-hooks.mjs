@@ -17,7 +17,7 @@ set -e
 
 [ "$SKIP_R2_MEDIA" = "1" ] && exit 0
 
-if find public/media -maxdepth 1 \\( -name '*.mp4' -o -name '*.webm' -o -name '*.mov' -o -name '*.m4v' \\) 2>/dev/null | grep -q .; then
+if { find local-media public/media -maxdepth 1 \\( -name '*.mp4' -o -name '*.webm' -o -name '*.mov' -o -name '*.m4v' \\) 2>/dev/null || true; } | grep -q .; then
   if command -v node >/dev/null 2>&1; then
     NODE=node
   elif [ -x /opt/homebrew/bin/node ]; then
@@ -27,7 +27,7 @@ if find public/media -maxdepth 1 \\( -name '*.mp4' -o -name '*.webm' -o -name '*
     exit 1
   fi
 
-  "$NODE" scripts/publish-r2-media.mjs
+  R2_BEST_EFFORT=1 "$NODE" scripts/publish-r2-media.mjs
   git add .env.production
 fi
 `
@@ -40,7 +40,7 @@ set -e
 
 [ "$SKIP_R2_MEDIA" = "1" ] && exit 0
 
-if find public/media -maxdepth 1 \\( -name '*.mp4' -o -name '*.webm' -o -name '*.mov' -o -name '*.m4v' \\) 2>/dev/null | grep -q .; then
+if { find local-media public/media -maxdepth 1 \\( -name '*.mp4' -o -name '*.webm' -o -name '*.mov' -o -name '*.m4v' \\) 2>/dev/null || true; } | grep -q .; then
   if command -v node >/dev/null 2>&1; then
     NODE=node
   elif [ -x /opt/homebrew/bin/node ]; then
@@ -50,7 +50,7 @@ if find public/media -maxdepth 1 \\( -name '*.mp4' -o -name '*.webm' -o -name '*
     exit 1
   fi
 
-  "$NODE" scripts/publish-r2-media.mjs
+  R2_BEST_EFFORT=1 "$NODE" scripts/publish-r2-media.mjs
 
   if ! git diff --quiet -- .env.production; then
     echo ".env.production changed after publishing media. Commit that file, then push again."

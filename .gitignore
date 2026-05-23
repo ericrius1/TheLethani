@@ -1,5 +1,8 @@
 node_modules
 dist
+local-media
 .DS_Store
+.env
 .env.local
 public/media/*.mp4
+!public/media/moon-fallback.mp4

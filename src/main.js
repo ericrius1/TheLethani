@@ -1,7 +1,8 @@
 import "./styles.css";
 
 const mediaBaseUrl = import.meta.env.VITE_MEDIA_BASE_URL?.trim().replace(/\/+$/, "");
-const mediaUrl = (fileName) => (mediaBaseUrl ? `${mediaBaseUrl}/${fileName}` : `/media/${fileName}`);
+const remoteMediaUrl = (fileName) => (mediaBaseUrl ? `${mediaBaseUrl}/${fileName}` : "");
+const localMediaUrl = (fileName) => `/media/${fileName}`;
 
 const blocks = [
   {
@@ -13,7 +14,10 @@ const blocks = [
   },
   {
     type: "video",
-    src: mediaUrl("moon.mp4"),
+    sources: [
+      remoteMediaUrl("moon.mp4"),
+      localMediaUrl("moon-fallback.mp4")
+    ].filter(Boolean),
     label: "Moon loop",
     fit: "cover",
     tone: "night"
@@ -79,7 +83,10 @@ function createMediaBlock(block, index) {
 
   if (block.type === "video") {
     const video = document.createElement("video");
-    video.src = block.src;
+    const sources = block.sources ?? [block.src].filter(Boolean);
+    let sourceIndex = 0;
+
+    video.src = sources[sourceIndex];
     video.className = `media media--${block.fit ?? "cover"}`;
     video.autoplay = true;
     video.loop = true;
@@ -87,6 +94,16 @@ function createMediaBlock(block, index) {
     video.playsInline = true;
     video.preload = "auto";
     video.setAttribute("aria-label", block.label ?? "Video");
+    video.addEventListener("error", () => {
+      if (sourceIndex >= sources.length - 1) {
+        return;
+      }
+
+      sourceIndex += 1;
+      video.src = sources[sourceIndex];
+      video.load();
+      video.play().catch(() => {});
+    });
     section.append(video);
   }
 

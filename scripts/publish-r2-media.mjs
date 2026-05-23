@@ -9,6 +9,7 @@ const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const envLocalPath = path.join(projectRoot, ".env.local");
 const envProductionPath = path.join(projectRoot, ".env.production");
 const mediaDir = path.join(projectRoot, "public", "media");
+const localMediaDir = path.join(projectRoot, "local-media");
 const wranglerScript = path.join(
   projectRoot,
   "node_modules",
@@ -26,13 +27,17 @@ const videoMimeTypes = new Map([
 
 const config = {
   ...readEnvFile(path.join(projectRoot, ".env")),
+  ...readEnvFile(envProductionPath),
   ...readEnvFile(envLocalPath),
   ...process.env
 };
 
 const bucket = normalizeBucketName(config.R2_BUCKET || `${readPackageName()}-media`);
 const prefix = normalizePrefix(config.R2_PREFIX || "media");
-let publicBaseUrl = trimTrailingSlash(config.R2_PUBLIC_BASE_URL || "");
+let publicBaseUrl = trimTrailingSlash(
+  config.R2_PUBLIC_BASE_URL || publicBaseFromMediaBase(config.VITE_MEDIA_BASE_URL, prefix) || ""
+);
+const bestEffort = process.env.R2_BEST_EFFORT === "1";
 
 const videos = listVideoFiles();
 
@@ -43,6 +48,11 @@ if (videos.length === 0) {
 
 if (!existsSync(wranglerScript)) {
   fail("Wrangler is not installed. Run `npm install`, then retry.");
+}
+
+if (bestEffort && config.CLOUDFLARE_API_TOKEN && !config.CLOUDFLARE_ACCOUNT_ID) {
+  console.warn("R2 publish skipped: CLOUDFLARE_ACCOUNT_ID is not configured for the API token.");
+  process.exit(0);
 }
 
 if (config.R2_AUTO_CREATE_BUCKET !== "0") {
@@ -152,18 +162,29 @@ function quoteEnvValue(value) {
 }
 
 function listVideoFiles() {
-  if (!existsSync(mediaDir)) {
-    return [];
+  const filesByName = new Map();
+
+  for (const sourceDir of [localMediaDir, mediaDir]) {
+    if (!existsSync(sourceDir)) {
+      continue;
+    }
+
+    for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+      const extension = path.extname(entry.name).toLowerCase();
+
+      if (!entry.isFile() || !videoMimeTypes.has(extension) || entry.name === "moon-fallback.mp4") {
+        continue;
+      }
+
+      filesByName.set(entry.name, {
+        name: entry.name,
+        path: path.join(sourceDir, entry.name),
+        mimeType: videoMimeTypes.get(extension)
+      });
+    }
   }
 
-  return readdirSync(mediaDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .filter((entry) => videoMimeTypes.has(path.extname(entry.name).toLowerCase()))
-    .map((entry) => ({
-      name: entry.name,
-      path: path.join(mediaDir, entry.name),
-      mimeType: videoMimeTypes.get(path.extname(entry.name).toLowerCase())
-    }));
+  return [...filesByName.values()];
 }
 
 function ensureBucket(bucketName) {
@@ -288,6 +309,17 @@ function trimTrailingSlash(value) {
 
 function joinUrl(baseUrl, suffix) {
   return `${trimTrailingSlash(baseUrl)}/${normalizePrefix(suffix)}`;
+}
+
+function publicBaseFromMediaBase(mediaBaseUrl = "", keyPrefix) {
+  const normalizedMediaBase = trimTrailingSlash(mediaBaseUrl);
+  const normalizedPrefix = `/${normalizePrefix(keyPrefix)}`;
+
+  if (!normalizedMediaBase.endsWith(normalizedPrefix)) {
+    return normalizedMediaBase;
+  }
+
+  return normalizedMediaBase.slice(0, -normalizedPrefix.length);
 }
 
 function fail(message) {

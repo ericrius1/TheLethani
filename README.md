@@ -9,7 +9,7 @@ npm run dev
 
 ## Media hosting
 
-Large videos are hosted outside Git. Put video files in `public/media`, then run:
+Large source videos are hosted outside Git. Keep the full-size source files in `local-media`, then run:
 
 ```sh
 npm run assets:publish
@@ -28,4 +28,12 @@ For a custom R2 domain, set `R2_PUBLIC_BASE_URL` in `.env.local` before publishi
 R2_PUBLIC_BASE_URL=https://assets.example.com
 ```
 
-For local development, `public/media/moon.mp4` still works when no media base URL is configured, but video files in `public/media` are ignored by Git.
+For local development and deployed fallback, the optimized `public/media/moon-fallback.mp4` is checked into Git. Full-size video files in `local-media` and `public/media` are ignored by Git.
+
+The production build currently points at:
+
+```sh
+VITE_MEDIA_BASE_URL=https://pub-dce3284b917342619402f554d82dad82.r2.dev/media
+```
+
+If that R2 object is unavailable, the site falls back to the optimized `public/media/moon-fallback.mp4` checked into Git.
